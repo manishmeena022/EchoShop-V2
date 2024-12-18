@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, CallbackError } from "mongoose";
 import bcrypt from "bcrypt";
 
 // User Document Interface
-interface IUser extends Document {
+export interface IUser extends Document {
   name: {
     firstName: string;
     lastName?: string;
@@ -118,23 +118,23 @@ userSchema.virtual("fullName").get(function () {
 });
 
 // Pre-save hook for password hashing
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (err) {
-    next(err as CallbackError);
-  }
-});
+// userSchema.pre("save", async function (next) {
+//   if (!this.isModified("password")) return next();
+//   try {
+//     const salt = await bcrypt.genSalt(10);
+//     this.password = await bcrypt.hash(this.password, salt);
+//     next();
+//   } catch (err) {
+//     next(err as CallbackError);
+//   }
+// });
 
 // Method to compare passwords
-userSchema.methods.comparePassword = async function (
-  candidatePassword: string
-): Promise<boolean> {
-  return bcrypt.compare(candidatePassword, this.password);
-};
+// userSchema.methods.comparePassword = async function (
+//   candidatePassword: string
+// ): Promise<boolean> {
+//   return bcrypt.compare(candidatePassword, this.password);
+// };
 
 // Soft delete helper method
 userSchema.methods.softDelete = async function () {
