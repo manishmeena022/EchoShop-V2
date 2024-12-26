@@ -1,34 +1,43 @@
 import { Request, Response } from "express";
 import Product from "../models/productModel";
+import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 
 // Create Producct
 // Add a new product to the system.
-const createProduct = async (req: Request, res: Response) => {
-    const { name, price, description, image, brand, category, countInStock } =
-        req.body;
+const createProduct = async (req: AuthenticatedRequest, res: Response) => {
+    const {
+        name,
+        slug,
+        stock,
+        sku,
+        price,
+        description,
+        image,
+        brand,
+        category,
+        countInStock,
+    } = req.body;
 
-    try {
-        const product = new Product({
-            name,
-            price,
-            //   user: req.user?._id,
-            image,
-            brand,
-            category,
-            countInStock,
-            numReviews: 0,
-            description,
-        });
+    const product = new Product({
+        name,
+        price,
+        slug,
+        stock,
+        sku,
+        // user: req.user?._id,
+        image,
+        brand,
+        category,
+        countInStock,
+        numReviews: 0,
+        description,
+    });
 
-        await product.save();
-        res.status(201).json({
-            message: "Product Created Successfult",
-            product,
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
-    }
+    await product.save();
+    res.status(201).json({
+        message: "Product Created Successfult",
+        product,
+    });
 };
 
 // Get Product by id
