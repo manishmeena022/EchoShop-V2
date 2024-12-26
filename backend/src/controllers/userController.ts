@@ -14,7 +14,6 @@ if (!jwtSecret) {
 //////////////////////////////////////////////////////////////////////////////
 // Core User Controllers
 
-// Create User
 // Register a new user.
 const register = asyncHandler(async (req: Request, res: Response) => {
     const {
@@ -60,8 +59,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     }
 });
 
-// Get User By Id
-// Retrieve user details by their unique ID.
+// Get User
 const getUser = asyncHandler(
     async (req: AuthenticatedRequest, res: Response) => {
         const user = await User.findById(req.user?._id).select("-password");
@@ -80,8 +78,25 @@ const getUser = asyncHandler(
     }
 );
 
+// get User by ID
+const getUserById = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    const user = await User.findById(userId).select("-password");
+
+    if (!user) {
+        res.status(401).json({
+            message: "User does not exist",
+        });
+        return;
+    }
+
+    res.status(200).json({
+        message: "User found successfully",
+        user,
+    });
+});
+
 // Get all Users
-// Retrieve a list of all users.
 const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
     const users = await User.find().select("-password");
 
@@ -98,45 +113,77 @@ const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
 });
 
 // Update User
-// Update user details, including profile, email, and address.
 const updateUser = asyncHandler(
-    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-        const { username, email, password } = req.body;
-        try {
-            const user = await User.findByIdAndUpdate(req.user?._id, {
-                username,
-                email,
-                password,
-            });
+    async (req: AuthenticatedRequest, res: Response) => {
+        const { firstName, lastName, isActive } = req.body;
+        const user = await User.findByIdAndUpdate(req.user?._id, {
+            name: {
+                firstName: firstName,
+                lastName: lastName,
+            },
+            isActive: isActive,
+        });
 
-            if (!user) {
-                res.status(401).json({
-                    message: "User does not exist",
-                });
-                return;
-            }
-
-            res.status(200).json({
-                message: "User updated successfully",
-                user,
+        if (!user) {
+            res.status(401).json({
+                message: "User does not exist",
             });
-        } catch (err: unknown) {
-            console.error("Error", err);
-            res.status(500).send({
-                error:
-                    err instanceof Error ? err.message : "Something went wrong",
-            });
+            return;
         }
+
+        res.status(200).json({
+            message: "User updated successfully",
+            user,
+        });
     }
 );
 
 // Delete User (Soft delete)
-// Mark a user as deleted by setting deletedAt and deactivating the account.
 const deleteUser = asyncHandler(async (req: Request, res: Response) => {
-    try {
-        const { userId } = req.params;
+    const { userId } = req.params;
 
-        console.log("userId", userId);
+    const user = await User.findByIdAndUpdate(userId, {
+        isActive: false,
+        deletedAt: Date.now(),
+    });
+
+    if (!user) {
+        res.status(401).json({
+            message: "User does not exist",
+        });
+        return;
+    }
+
+    res.status(200).json({
+        message: "User deleted successfully",
+    });
+});
+
+// Restore User
+const restoreUser = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+
+    const user = await User.findByIdAndUpdate(userId, {
+        isActive: true,
+        deletedAt: null,
+    });
+
+    if (!user) {
+        res.status(401).json({
+            message: "User does not exist",
+        });
+        return;
+    }
+
+    res.status(200).json({
+        message: "User restored successfully",
+    });
+});
+
+// Permanently Delete User
+const permanentlyDeleteUser = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { userId } = req.params;
 
         const user = await User.findByIdAndDelete(userId);
 
@@ -148,71 +195,8 @@ const deleteUser = asyncHandler(async (req: Request, res: Response) => {
         }
 
         res.status(200).json({
-            message: "User deleted successfully",
+            message: "User deleted permanently",
         });
-    } catch (err: unknown) {
-        console.error("Error", err);
-        res.status(500).send({
-            error: err instanceof Error ? err.message : "Something went wrong",
-        });
-    }
-});
-
-// Restore User
-// Reactivate a previously deleted user by clearing the deletedAt field and setting isActive to true.
-const restoreUser = asyncHandler(async (req: Request, res: Response) => {
-    try {
-        const { userId } = req.params;
-
-        const user = await User.findByIdAndUpdate(userId, {
-            isActive: true,
-            deletedAt: null,
-        });
-
-        if (!user) {
-            res.status(401).json({
-                message: "User does not exist",
-            });
-            return;
-        }
-
-        res.status(200).json({
-            message: "User restored successfully",
-        });
-    } catch (err: unknown) {
-        console.error("Error", err);
-        res.status(500).send({
-            error: err instanceof Error ? err.message : "Something went wrong",
-        });
-    }
-});
-
-// Permanently Delete User
-// Completely remove the user from the database
-const permanentlyDeleteUser = asyncHandler(
-    async (req: Request, res: Response) => {
-        try {
-            const { userId } = req.params;
-
-            const user = await User.findByIdAndDelete(userId);
-
-            if (!user) {
-                res.status(401).json({
-                    message: "User does not exist",
-                });
-                return;
-            }
-
-            res.status(200).json({
-                message: "User deleted permanently",
-            });
-        } catch (err: unknown) {
-            console.error("Error", err);
-            res.status(500).send({
-                error:
-                    err instanceof Error ? err.message : "Something went wrong",
-            });
-        }
     }
 );
 
@@ -220,7 +204,6 @@ const permanentlyDeleteUser = asyncHandler(
 // Authentication and Authorization Controllers
 
 // Login User
-// Authenticate user credentials, generate, and return a JWT or session token.
 const login = asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
@@ -231,70 +214,83 @@ const login = asyncHandler(async (req: Request, res: Response) => {
         return;
     }
 
-    try {
-        const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email });
 
-        if (!userExists) {
-            res.status(401).json({
-                error: "Email does not exists",
-            });
-            return;
-        }
-
-        const isPasswordValid = await comparePassword(
-            password,
-            userExists.password
-        );
-
-        if (!isPasswordValid) {
-            res.status(401).json({
-                error: "Invalid email or password",
-            });
-            return;
-        }
-
-        res.status(200).json({
-            message: "login successfully",
-            token: generateToken(userExists._id as string),
-            userInfo: {
-                _id: userExists._id,
-                fullName: userExists.fullName,
-                email: userExists.email,
-                role: userExists.role,
-                isActive: userExists.isActive,
-                whishlist: userExists.wishlist,
-                cart: userExists.cart,
-                orders: userExists.orders,
-            },
+    if (!userExists) {
+        res.status(401).json({
+            error: "Email does not exists",
         });
-    } catch (err: unknown) {
-        console.error("Error", err);
-        res.status(500).send({
-            error: err instanceof Error ? err.message : "Something went wrong",
-        });
+        return;
     }
+
+    const isPasswordValid = await comparePassword(
+        password,
+        userExists.password
+    );
+
+    if (!isPasswordValid) {
+        res.status(401).json({
+            error: "Invalid email or password",
+        });
+        return;
+    }
+
+    res.status(200).json({
+        message: "login successfully",
+        token: generateToken(userExists._id as string),
+        userInfo: {
+            _id: userExists._id,
+            fullName: userExists.fullName,
+            email: userExists.email,
+            role: userExists.role,
+            isActive: userExists.isActive,
+            whishlist: userExists.wishlist,
+            cart: userExists.cart,
+            orders: userExists.orders,
+        },
+    });
 });
 
 // Logout User
-// Handle token/session invalidation.
-const logout = asyncHandler(async (req: Request, res: Response) => {});
+const logout = asyncHandler(async (req: Request, res: Response) => {
+    res.status(200).json({
+        message: "User logged out successfully",
+    });
+});
 
 // Change Password
-// Allow users to update their password after validation.
-const changePassword = async (req: Request, res: Response): Promise<void> => {
-    try {
-    } catch (err: unknown) {
-        console.error("Error", err);
-        res.status(500).send({
-            error: err instanceof Error ? err.message : "Something went wrong",
+const changePassword = async (req: AuthenticatedRequest, res: Response) => {
+    const { oldPassword, newPassword } = req.body;
+
+    const user = await User.findById(req.user?._id);
+
+    if (!user) {
+        return res.status(404).json({
+            message: "User does not exist",
         });
     }
+
+    const isPasswordValid = await comparePassword(oldPassword, user.password);
+
+    if (!isPasswordValid) {
+        return res.status(400).json({
+            message: "Invalid password",
+        });
+    }
+
+    user.password = newPassword;
+
+    await user.save();
+
+    return res.status(200).json({
+        message: "Password updated successfully",
+    });
 };
 
 // Reset Password
-// Send a reset link or OTP for password recovery.
-const resetPassword = async (req: Request, res: Response): Promise<void> => {
+const resetPassword = async (req: Request, res: Response) => {
     try {
+        //TODO: Implement password reset functionality
     } catch (err: unknown) {
         console.error("Error", err);
         res.status(500).send({
@@ -304,211 +300,243 @@ const resetPassword = async (req: Request, res: Response): Promise<void> => {
 };
 
 // Update Role (Admin)
-// Allow admins to change the role of a user.
-const updateRole = async (req: Request, res: Response): Promise<void> => {
-    try {
-    } catch (err: unknown) {
-        console.error("Error", err);
-        res.status(500).send({
-            error: err instanceof Error ? err.message : "Something went wrong",
+const updateRole = async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
         });
+        return;
     }
+
+    user.role = role;
+    await user.save();
+
+    return res.status(200).json({
+        message: "User role updated successfully",
+    });
 };
 
 //////////////////////////////////////////////////////////////////////////////
 // Profile and Preferences
 
 // Update Profile
-// Update profile details such as age, phone, photo, and address.
-const updateProfile = async (req: Request, res: Response): Promise<void> => {
-    try {
-    } catch (err: unknown) {
-        console.error("Error", err);
-        res.status(500).send({
-            error: err instanceof Error ? err.message : "Something went wrong",
+const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
+    const { age, phone, photo, street, city, state, country, zip } = req.body;
+
+    const user = await User.findByIdAndUpdate(req.user?._id, {
+        profile: {
+            age,
+            phone,
+            photo,
+            address: {
+                street,
+                city,
+                state,
+                country,
+                zip,
+            },
+        },
+    });
+
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
         });
+        return;
     }
+
+    return res.status(200).json({
+        message: "Profile updated successfully",
+    });
 };
 
 // Get wishlist
-// Retrieve the user’s wishlist.
 const getWishlist = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-        const user = await User.findById(req.user?._id).populate("wishlist");
+    const user = await User.findById(req.user?._id).populate("wishlist");
 
-        if (!user) {
-            res.status(404).json({
-                message: "User does not exist",
-            });
-            return;
-        }
-
-        res.status(200).json({
-            wishlist: user.wishlist,
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
         });
-    } catch (err) {
-        console.log(err);
+        return;
     }
+
+    res.status(200).json({
+        wishlist: user.wishlist,
+    });
 };
 
 // Add Product to Wishlist
-// Add a product to the user's wishlist.
 const addToWishlist = async (req: AuthenticatedRequest, res: Response) => {
     const { productId } = req.body;
-    try {
-        const user = await User.findById(req.user?._id);
+    const user = await User.findById(req.user?._id);
 
-        if (!user) {
-            res.status(404).json({
-                message: "User does not exist",
-            });
-            return;
-        }
-
-        if (user && user.wishlist && user.wishlist.includes(productId)) {
-            return res.status(400).json({
-                message: "Product already in wishlist",
-            });
-        }
-
-        if (!user.wishlist) {
-            user.wishlist = [];
-        }
-
-        user.wishlist.push(productId);
-        await user.save();
-    } catch (err) {
-        console.log(err);
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
+        });
+        return;
     }
+
+    if (user && user.wishlist && user.wishlist.includes(productId)) {
+        return res.status(400).json({
+            message: "Product already in wishlist",
+        });
+    }
+
+    if (!user.wishlist) {
+        user.wishlist = [];
+    }
+
+    user.wishlist.push(productId);
+    await user.save();
 };
 
 //const remove from wishlist
-// Remove a product from the user's wishlist.
 const removeFromWishlist = async (req: AuthenticatedRequest, res: Response) => {
     const { productId } = req.params;
-    try {
-        const user = await User.findById(req.user?._id);
-        if (!user) {
-            res.status(404).json({
-                message: "User does not exist",
-            });
-            return;
-        }
 
-        if (
-            user &&
-            user.wishlist &&
-            user.wishlist.includes(new mongoose.Types.ObjectId(productId))
-        ) {
-            user.wishlist = user.wishlist.filter(
-                (id) => !id.equals(new mongoose.Types.ObjectId(productId))
-            );
-            await user.save();
-
-            res.status(200).json({
-                message: "Product removed from wishlist",
-            });
-        }
-
-        res.status(400).json({
-            message: "Product not in wishlist",
+    const user = await User.findById(req.user?._id);
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
         });
-    } catch (err) {
-        console.log(err);
+        return;
     }
+
+    if (
+        user &&
+        user.wishlist &&
+        user.wishlist.includes(new mongoose.Types.ObjectId(productId))
+    ) {
+        user.wishlist = user.wishlist.filter(
+            (id) => !id.equals(new mongoose.Types.ObjectId(productId))
+        );
+        await user.save();
+
+        res.status(200).json({
+            message: "Product removed from wishlist",
+        });
+    }
+
+    res.status(400).json({
+        message: "Product not in wishlist",
+    });
 };
 
 //////////////////////////////////////////////////////////////////////////////////
 // Cart Management
 
 // Get Cart
-// Retrieve items in the user’s cart.
 const getCart = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-        const user = await User.findById(req.user?._id).populate(
-            "cart.productId"
-        );
+    const user = await User.findById(req.user?._id).populate("cart.productId");
 
-        if (!user) {
-            res.status(404).json({
-                message: "User does not exist",
-            });
-            return;
-        }
-
-        res.status(200).json({
-            cart: user.cart,
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
         });
-    } catch (err) {
-        console.log(err);
+        return;
     }
+
+    res.status(200).json({
+        cart: user.cart,
+    });
 };
 
 // Save Cart
-// Add a product to the cart or increase its quantity.
 const saveCart = async (req: AuthenticatedRequest, res: Response) => {
     const { cart } = req.body;
-    try {
-        const user = await User.findById(req.user?._id);
+    const user = await User.findById(req.user?._id);
 
-        if (!user) {
-            res.status(404).json({
-                message: "User does not exist",
-            });
-            return;
-        }
-
-        user.cart = cart;
-        await user.save();
-        res.status(200).json({
-            message: "Cart saved successfully",
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
         });
-    } catch (err) {
-        console.log(err);
+        return;
     }
+
+    user.cart = cart;
+    await user.save();
+    res.status(200).json({
+        message: "Cart saved successfully",
+    });
 };
 
 // Update Cart
-// Update the quantity of a product in the cart.
 const updateCart = async (req: AuthenticatedRequest, res: Response) => {
     const { cartItems } = req.body;
-    try {
-    } catch (error) {
-        console.log(error);
+
+    const user = await User.findById(req.user?._id);
+
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
+        });
+        return;
     }
+
+    user.cart = cartItems;
+    await user.save();
+
+    res.status(200).json({
+        message: "Cart updated successfully",
+        cartItems: user.cart,
+    });
 };
 
 // remove from Cart
-// Remove a product from the cart.
 const removeFromCart = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-    } catch (error) {
-        console.log(error);
+    const { productId } = req.params;
+    const user = await User.findById(req.user?._id);
+
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
+        });
+        return;
     }
+
+    if (!user.cart) {
+        res.status(400).json({
+            message: "Cart is empty",
+        });
+        return;
+    }
+
+    user.cart = user?.cart.filter(
+        (item) => item.productId.toString() !== productId
+    );
+    await user.save();
+
+    res.status(200).json({
+        message: "Product removed from cart",
+        cartItems: user.cart,
+    });
 };
 
 // Clear Cart
-//  Empty the entire cart.
 const clearCart = async (req: AuthenticatedRequest, res: Response) => {
     const { cartItems } = req.body;
-    try {
-        const user = await User.findById(req.user?._id);
 
-        if (!user) {
-            res.status(404).json({
-                message: "User does not exist",
-            });
-            return;
-        }
+    const user = await User.findById(req.user?._id);
 
-        user.cart = [];
-        await user.save();
-        res.status(200).json({
-            message: "Cart cleared successfully",
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
         });
-    } catch (err) {
-        console.log(err);
+        return;
     }
+
+    user.cart = [];
+    await user.save();
+    res.status(200).json({
+        message: "Cart cleared successfully",
+    });
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -533,10 +561,44 @@ const clearCart = async (req: AuthenticatedRequest, res: Response) => {
 // Account Management
 
 // Deactivate Account
-// Allow the user to deactivate their own account (set isActive to false).
+const deactivateAccount = async (req: AuthenticatedRequest, res: Response) => {
+    const { userId } = req.body;
+
+    const user = await User.findByIdAndUpdate(userId, {
+        isActive: false,
+    });
+
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
+        });
+        return;
+    }
+
+    res.status(200).json({
+        message: "Account deactivated successfully",
+    });
+};
 
 // Reactivate Account
-// Allow the user to reactivate their account.
+const reactivateAccount = async (req: AuthenticatedRequest, res: Response) => {
+    const { userId } = req.body;
+
+    const user = await User.findByIdAndUpdate(userId, {
+        isActive: true,
+    });
+
+    if (!user) {
+        res.status(404).json({
+            message: "User does not exist",
+        });
+        return;
+    }
+
+    res.status(200).json({
+        message: "Account reactivated successfully",
+    });
+};
 
 export {
     register,
@@ -552,4 +614,14 @@ export {
     saveCart,
     getCart,
     clearCart,
+    updateCart,
+    removeFromCart,
+    deactivateAccount,
+    reactivateAccount,
+    getUserById,
+    restoreUser,
+    permanentlyDeleteUser,
+    updateRole,
+    updateProfile,
+    resetPassword,
 };
