@@ -26,7 +26,7 @@ export interface IUser extends Document {
       zip?: string;
     };
   };
-  wishList?: mongoose.Types.ObjectId[];
+  wishlist?: mongoose.Types.ObjectId[];
   cart?: {
     productId: mongoose.Types.ObjectId;
     quantity: number;
@@ -88,7 +88,7 @@ const userSchema = new Schema<IUser>(
         },
       },
     },
-    wishList: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     cart: [
       {
         productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
@@ -117,17 +117,17 @@ userSchema.virtual("fullName").get(function () {
   return `${this.name.firstName} ${this.name.lastName || ""}`.trim();
 });
 
-// Pre-save hook for password hashing
-// userSchema.pre("save", async function (next) {
-//   if (!this.isModified("password")) return next();
-//   try {
-//     const salt = await bcrypt.genSalt(10);
-//     this.password = await bcrypt.hash(this.password, salt);
-//     next();
-//   } catch (err) {
-//     next(err as CallbackError);
-//   }
-// });
+//Pre-save hook for password hashing
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err as CallbackError);
+  }
+});
 
 // Method to compare passwords
 // userSchema.methods.comparePassword = async function (

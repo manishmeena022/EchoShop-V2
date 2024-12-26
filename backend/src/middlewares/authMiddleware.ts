@@ -17,30 +17,23 @@ const protect = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   // Get the token from Authorization header
   const authHeader = req.headers.authorization;
 
-  console.log("auth Header", authHeader);
-
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
+    return;
   }
 
   const token = authHeader.split(" ")[1];
-
-  console.log("Token", token);
 
   try {
     // Verify the token
     const decoded = jwt.verify(token, jwtToken) as DecodedToken;
 
-    console.log("DECODED : ", decoded);
-
     // Find the user by ID and exclude the password field
     req.user = await User.findById(decoded?.id).select("-password");
-
-    console.log("req user", req.user);
 
     // Proceed to the next middleware
     next();
@@ -54,13 +47,20 @@ const protect = async (
 
 // Role guard for RBAC (Role-based Access Control)
 const roleGuard = (requiredRole: string) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.user || req.user.role !== requiredRole) {
-      return res.status(403).json({
-        message: "Access denied. Insufficient permissions.",
-      });
-    }
-    next();
+  return (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    return (async () => {
+      if (!req.user || req.user.role !== requiredRole) {
+        res.status(403).json({
+          message: "Access denied. Insufficient permissions.",
+        });
+        return;
+      }
+      next();
+    })();
   };
 };
 
