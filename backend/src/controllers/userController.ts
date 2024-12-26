@@ -3,15 +3,12 @@ import User, { IUser } from "../models/userModel";
 import { comparePassword, generateToken } from "../services/authService";
 import mongoose from "mongoose";
 import asyncHandler from "../middlewares/asyncHandler";
+import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 
 const jwtSecret = process.env.JWT_SECRET as string;
 
 if (!jwtSecret) {
     throw new Error('Env variable "jwtSecret" is required');
-}
-
-interface AuthenticatedRequest extends Request {
-    user: IUser;
 }
 
 //////////////////////////////////////////////////////////////////////////////
