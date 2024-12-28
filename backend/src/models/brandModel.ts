@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
+// Brand Document Interface
 interface IBrand extends Document {
     name: string;
     image: string;
@@ -8,6 +9,7 @@ interface IBrand extends Document {
     isFeatured: boolean;
 }
 
+// Defining Brand Schema
 const brandSchema = new Schema<IBrand>(
     {
         name: { type: String, required: true, unique: true },
@@ -19,6 +21,7 @@ const brandSchema = new Schema<IBrand>(
     { timestamps: true }
 );
 
+// Creating Brand Model
 const Brand = mongoose.model<IBrand>("Brand", brandSchema);
 
 export default Brand;

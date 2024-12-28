@@ -1,84 +1,48 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
+// Prdocut Document Interface
+
 interface IProduct extends Document {
-  name: string;
-  slug: string;
-  description: string;
-  longDescription?: string;
-  price: number;
-  discountPrice?: number;
-  stock: number;
-  sku: string;
-  category: Types.ObjectId[];
-  brand?: string;
-  image: string[];
-  specification: {
-    key: string;
-    value: string;
-  }[];
-  reviews: Types.ObjectId[];
-  averageRating: number;
-  totalRating: number;
-  isFeatured: boolean;
-  isAvailable: boolean;
-  seo?: {
-    metaTitle?: string;
-    metaDescription?: string;
-    metaKeywords?: string[];
-  };
-  dimensions?: {
-    width?: number;
-    height?: number;
-    weight?: number;
-    length?: number;
-  };
-  tags: string[];
-  relatedProducts: Types.ObjectId[];
+    name: string;
+    slug: string;
+    price: number;
+    salePrice: number;
+    discount: number;
+    quantity: number;
+    description: string;
+    images: string[];
+    category: Types.ObjectId;
+    brand: Types.ObjectId;
+    isFeatured: boolean;
+    isActive: boolean;
 }
 
+// Defining Product Schema
 const productSchema = new Schema<IProduct>(
-  {
-    name: { type: String, required: true },
-    slug: { type: String, required: true, unique: true },
-    description: { type: String, required: true },
-    longDescription: { type: String },
-    price: { type: Number, required: true, min: 0 },
-    discountPrice: { type: Number, default: null },
-    stock: { type: Number, required: true, min: 0 },
-    sku: { type: String, unique: true },
-    category: [{ type: Types.ObjectId, ref: "Category" }],
-    brand: { type: String },
-    image: [{ type: String, required: true }],
-    specification: [
-      {
-        key: { type: String, required: true },
-        value: { type: String, required: true },
-      },
-    ],
-    reviews: [{ type: Types.ObjectId, ref: "Review" }],
-    averageRating: { type: Number, default: 0 },
-    totalRating: { type: Number, default: 0 },
-    isFeatured: { type: Boolean, default: false },
-    isAvailable: { type: Boolean, default: true },
-    seo: {
-      metaTitle: { type: String },
-      metaDescription: { type: String },
-      metaKeywords: [{ type: String }],
+    {
+        name: { type: String, required: true, unique: true },
+        slug: { type: String, required: true, unique: true },
+        price: { type: Number, required: true },
+        salePrice: { type: Number },
+        discount: { type: Number },
+        quantity: { type: Number, required: true },
+        description: { type: String, required: true },
+        images: [{ type: String }],
+        category: {
+            type: Schema.Types.ObjectId,
+            ref: "Category",
+            required: true,
+        },
+        brand: { type: Schema.Types.ObjectId, ref: "Brand", required: true },
+        isFeatured: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: true },
     },
-    dimensions: {
-      width: { type: Number },
-      height: { type: Number },
-      weight: { type: Number },
-      length: { type: Number },
-    },
-    tags: [{ type: String }],
-    relatedProducts: [{ type: Types.ObjectId, ref: "Product" }],
-  },
-  {
-    timestamps: true,
-  }
+    {
+        timestamps: true,
+    }
 );
 
+// Creating Product Model
 const Product = mongoose.model<IProduct>("Product", productSchema);
 
 export default Product;

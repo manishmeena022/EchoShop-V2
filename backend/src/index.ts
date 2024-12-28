@@ -19,6 +19,10 @@ app.use("/api/v1/products", productRoute);
 app.use("/api/v1/brands", brandRoute);
 app.use("/api/v1/categories", categoryRoute);
 
+app.get("/", (req, res) => {
+    res.send("Welcome to EchoShop API");
+});
+
 const startServer = async () => {
     try {
         await connectDb();
