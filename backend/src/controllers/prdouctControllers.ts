@@ -3,7 +3,7 @@ import Product from "../models/productModel";
 import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 import asyncHandler from "../middlewares/asyncHandler";
 
-// Create Producct
+// Create Product
 // Add a new product to the system.
 const createProduct = asyncHandler(
     async (req: AuthenticatedRequest, res: Response) => {

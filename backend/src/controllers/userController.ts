@@ -16,11 +16,7 @@ if (!jwtSecret) {
 
 // Register a new user.
 const register = asyncHandler(async (req: Request, res: Response) => {
-    const {
-        name: { firstName, lastName },
-        email,
-        password,
-    } = req.body;
+    const { firstName, lastName, email, password, terms } = req.body;
     const userExists = await User.findOne({ email });
 
     if (userExists) {
@@ -36,6 +32,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
         },
         email,
         password,
+        terms,
     });
 
     if (user) {
