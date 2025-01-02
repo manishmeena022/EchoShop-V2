@@ -25,6 +25,7 @@ export default function LoginForm() {
 
         if (res.status === 200) {
             console.log("Login successful");
+            console.log(res.data);
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("user", JSON.stringify(res.data.user));
             router.push("/");
